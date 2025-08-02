@@ -1,4 +1,8 @@
+const s3 = require("../../config/aws");
 const Career = require("../../models/career.model");
+const JobApplication = require("../../models/job_application.model");
+
+const { Upload } = require("@aws-sdk/lib-storage");
 
 exports.saveCareerData = async function (req, res) {
   try {
@@ -41,7 +45,7 @@ exports.getCareerData = async function (req, res) {
       page,
       limit,
       totalPages: Math.ceil(total / limit),
-      careers
+      careers,
     });
   } catch (error) {
     console.error(error);
@@ -98,6 +102,52 @@ exports.deleteCareerData = async function (req, res) {
     }
 
     res.status(200).json({ message: "Career deleted successfully." });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      message: "Something went wrong. Please try again.",
+      error: error.message,
+    });
+  }
+};
+
+exports.saveJobApplication = async function (req, res) {
+  try {
+    const { name, email, phone, location, experience, resume_path } = req.body;
+
+    // if (!name || !email || !phone || !location || !experience || !resume_path) {
+    //   return res.status(400).json({
+    //     message: "All fields are required for job application.",
+    //   });
+    // }
+
+    const file = req.file;
+
+    const uploadParams = {
+      Bucket: process.env.AWS_BUCKET_NAME,
+      Key: `resume/${Date.now()}-${file.originalname}`,
+      Body: file.buffer,
+      ContentType: file.mimetype,
+    };
+
+    const uploader = new Upload({
+      client: s3,
+      params: uploadParams,
+    });
+
+    const result = await uploader.done();
+
+    console.log(result);
+
+    // const newApplication = await JobApplication.create({
+    //   name,
+    //   email,
+    //   phone,
+    //   location,
+    //   experience,
+    //   resume_path,
+    // });
+    res.status(200).json({ message: "Application sent successfully." });
   } catch (error) {
     console.error(error);
     res.status(500).json({
