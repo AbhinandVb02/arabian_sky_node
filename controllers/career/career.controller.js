@@ -137,17 +137,47 @@ exports.saveJobApplication = async function (req, res) {
 
     const result = await uploader.done();
 
-    console.log(result);
+    // console.log(result);
 
-    // const newApplication = await JobApplication.create({
-    //   name,
-    //   email,
-    //   phone,
-    //   location,
-    //   experience,
-    //   resume_path,
-    // });
+    const newApplication = await JobApplication.create({
+      name,
+      email,
+      phone,
+      location,
+      experience,
+      resume_path: result.Key,
+    });
     res.status(200).json({ message: "Application sent successfully." });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      message: "Something went wrong. Please try again.",
+      error: error.message,
+    });
+  }
+};
+
+exports.listJobApplications = async function (req, res) {
+  try {
+    let { page = 1, limit = 10 } = req.body;
+    page = parseInt(page);
+    limit = parseInt(limit);
+    if (isNaN(page) || page < 1) page = 1;
+    if (isNaN(limit) || limit < 1) limit = 10;
+
+    const total = await JobApplication.countDocuments();
+    const applications = await JobApplication.find()
+      .sort({ _id: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit);
+
+    res.status(200).json({
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+      applications,
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({
