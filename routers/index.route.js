@@ -3,4 +3,5 @@ module.exports = (app) => {
   require("./career.route")(app);
   require("./order.route")(app);
   require("./dashboard.route")(app);
+  require("./contact.route")(app);
 };
