@@ -5,7 +5,11 @@ const CareerSchema = new mongoose.Schema(
     post: { type: String },
     place: { type: String },
     type: { type: String },
-    description: { type: String },
+    responsibility: { type: String },
+    requirment: { type: String },
+    qualification: { type: String },
+    experience: { type: String },
+    salary: { type: String },
   },
   { timestamps: true }
 );
