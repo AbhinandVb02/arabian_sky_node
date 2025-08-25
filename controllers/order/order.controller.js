@@ -51,14 +51,21 @@ exports.saveOrderData = async function (req, res) {
 
 exports.getOrderData = async function (req, res) {
   try {
-    let { page = 1, limit = 10 } = req.query;
+    let { page = 1, limit = 10, searchKey = "" } = req.query;
     page = parseInt(page);
     limit = parseInt(limit);
     if (isNaN(page) || page < 1) page = 1;
     if (isNaN(limit) || limit < 1) limit = 10;
 
-    const total = await Order.countDocuments();
-    const orders = await Order.find()
+    // Build search query for order_id
+    let query = {};
+    if (searchKey && searchKey.trim() !== "") {
+      const regex = new RegExp(searchKey.trim(), "i");
+      query.order_id = regex;
+    }
+
+    const total = await Order.countDocuments(query);
+    const orders = await Order.find(query)
       .sort({ _id: -1 })
       .skip((page - 1) * limit)
       .limit(limit);

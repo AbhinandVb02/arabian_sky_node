@@ -56,14 +56,23 @@ exports.saveCareerData = async function (req, res) {
 
 exports.getCareerData = async function (req, res) {
   try {
-    let { page = 1, limit = 10 } = req.body;
+    let { page = 1, limit = 10, searchKey = "" } = req.body;
     page = parseInt(page);
     limit = parseInt(limit);
     if (isNaN(page) || page < 1) page = 1;
     if (isNaN(limit) || limit < 1) limit = 10;
 
-    const total = await Career.countDocuments();
-    const careers = await Career.find()
+    // Build search query
+    let query = {};
+    if (searchKey && searchKey.trim() !== "") {
+      const regex = new RegExp(searchKey, "i");
+      query = {
+        $or: [{ post: regex }],
+      };
+    }
+
+    const total = await Career.countDocuments(query);
+    const careers = await Career.find(query)
       .sort({ _id: -1 })
       .skip((page - 1) * limit)
       .limit(limit);
@@ -170,7 +179,8 @@ exports.deleteCareerData = async function (req, res) {
 
 exports.saveJobApplication = async function (req, res) {
   try {
-    const { name, email, phone, location, experience, resume_path } = req.body;
+    const { name, email, phone, location, experience, resume_path, job_id } =
+      req.body;
 
     // if (!name || !email || !phone || !location || !experience || !resume_path) {
     //   return res.status(400).json({
@@ -203,6 +213,8 @@ exports.saveJobApplication = async function (req, res) {
       location,
       experience,
       resume_path: result.Key,
+      job_id: job_id || null,
+      status: "Pending",
     });
     res.status(200).json({ message: "Application sent successfully." });
   } catch (error) {
@@ -216,24 +228,70 @@ exports.saveJobApplication = async function (req, res) {
 
 exports.listJobApplications = async function (req, res) {
   try {
-    let { page = 1, limit = 10 } = req.body;
+    let { page = 1, limit = 10, searchKey = "" } = req.body;
     page = parseInt(page);
     limit = parseInt(limit);
     if (isNaN(page) || page < 1) page = 1;
     if (isNaN(limit) || limit < 1) limit = 10;
 
-    const total = await JobApplication.countDocuments();
-    const applications = await JobApplication.find()
+    // Only search by job name
+    let jobQuery = {};
+    if (searchKey && searchKey.trim() !== "") {
+      const regex = new RegExp(searchKey.trim(), "i");
+      jobQuery = { name: regex };
+    }
+
+    // Find all careers matching the job name (if searchKey provided)
+    let jobIds = [];
+    if (searchKey && searchKey.trim() !== "") {
+      const careers = await Career.find(jobQuery).select("_id").lean();
+      jobIds = careers.map(career => career._id);
+      if (jobIds.length === 0) {
+        // No jobs match, so return empty result
+        return res.status(200).json({
+          total: 0,
+          page,
+          limit,
+          totalPages: 0,
+          applications: [],
+        });
+      }
+    }
+
+    // Build application query
+    let appQuery = {};
+    if (jobIds.length > 0) {
+      appQuery.job_id = { $in: jobIds };
+    }
+
+    const total = await JobApplication.countDocuments(appQuery);
+
+    // Fetch applications and populate job details from Career model using job_id
+    const applications = await JobApplication.find(appQuery)
       .sort({ _id: -1 })
       .skip((page - 1) * limit)
-      .limit(limit);
+      .limit(limit)
+      .lean();
+
+    // For each application, fetch the job details from Career model
+    const applicationJobIds = applications.map(app => app.job_id).filter(Boolean);
+    const careers = await Career.find({ _id: { $in: applicationJobIds } }).lean();
+    const careerMap = {};
+    careers.forEach(career => {
+      careerMap[career._id.toString()] = career;
+    });
+
+    const applicationsWithJob = applications.map(app => ({
+      ...app,
+      job: app.job_id ? careerMap[app.job_id] || null : null,
+    }));
 
     res.status(200).json({
       total,
       page,
       limit,
       totalPages: Math.ceil(total / limit),
-      applications,
+      applications: applicationsWithJob,
     });
   } catch (error) {
     console.error(error);
@@ -249,9 +307,7 @@ exports.updateJobApplicationStatus = async function (req, res) {
     const { id, status } = req.body;
 
     if (!id || !status) {
-      return res
-        .status(400)
-        .json({ message: "ID and status are required." });
+      return res.status(400).json({ message: "ID and status are required." });
     }
 
     const application = await JobApplication.findByIdAndUpdate(
@@ -264,7 +320,9 @@ exports.updateJobApplicationStatus = async function (req, res) {
       return res.status(404).json({ message: "Application not found." });
     }
 
-    res.status(200).json({ message: "Application status updated successfully." });
+    res
+      .status(200)
+      .json({ message: "Application status updated successfully." });
   } catch (error) {
     console.error(error);
     res.status(500).json({
