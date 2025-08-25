@@ -243,3 +243,33 @@ exports.listJobApplications = async function (req, res) {
     });
   }
 };
+
+exports.updateJobApplicationStatus = async function (req, res) {
+  try {
+    const { id, status } = req.body;
+
+    if (!id || !status) {
+      return res
+        .status(400)
+        .json({ message: "ID and status are required." });
+    }
+
+    const application = await JobApplication.findByIdAndUpdate(
+      id,
+      { status },
+      { new: true }
+    );
+
+    if (!application) {
+      return res.status(404).json({ message: "Application not found." });
+    }
+
+    res.status(200).json({ message: "Application status updated successfully." });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      message: "Something went wrong. Please try again.",
+      error: error.message,
+    });
+  }
+};

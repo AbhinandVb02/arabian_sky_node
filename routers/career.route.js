@@ -9,4 +9,5 @@ module.exports = (app) => {
 
   app.post("/career/job/apply", upload.single("resume_path"), careerController.saveJobApplication);
   app.post("/career/job/list", careerController.listJobApplications);
+  app.post("/career/job/update-status", careerController.updateJobApplicationStatus);
 };

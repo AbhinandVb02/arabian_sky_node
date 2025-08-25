@@ -8,6 +8,7 @@ const JobApplication = new mongoose.Schema(
     location: String,
     experience: String,
     resume_path: String,
+    status: String,
   },
   { timestamps: true }
 );
