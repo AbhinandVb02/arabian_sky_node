@@ -64,3 +64,66 @@ exports.listEmployees = async function (req, res) {
       .json({ message: "Something went wrong.", error: error.message });
   }
 };
+
+// Update an employee
+exports.updateEmployee = async function (req, res) {
+  try {
+    const { id, name, designation, is_employee, number } = req.body;
+    let updateData = { name, designation, is_employee, number };
+
+    Object.keys(updateData).forEach(
+      (key) => updateData[key] === undefined && delete updateData[key]
+    );
+
+    // Handle image update if file is provided
+    if (req.file) {
+      const file = req.file;
+      const uploadParams = {
+        Bucket: process.env.AWS_BUCKET_NAME,
+        Key: `employee/${Date.now()}-${file.originalname}`,
+        Body: file.buffer,
+        ContentType: file.mimetype,
+      };
+
+      const uploader = new Upload({
+        client: s3,
+        params: uploadParams,
+      });
+
+      const result = await uploader.done();
+      updateData.image = result.Key;
+    }
+
+    const employee = await Employee.findByIdAndUpdate(id, updateData, {
+      new: true,
+    });
+    if (!employee) {
+      return res.status(404).json({ message: "Employee not found." });
+    }
+    res
+      .status(200)
+      .json({ message: "Employee updated successfully.", data: employee });
+  } catch (error) {
+    console.error(error);
+    res
+      .status(500)
+      .json({ message: "Something went wrong.", error: error.message });
+  }
+};
+
+// Delete an employee
+exports.deleteEmployee = async function (req, res) {
+  try {
+    const { id } = req.params;
+    const employee = await Employee.findByIdAndDelete(id);
+    if (!employee) {
+      return res.status(404).json({ message: "Employee not found." });
+    }
+    res.status(200).json({ message: "Employee deleted successfully." });
+  } catch (error) {
+    console.error(error);
+    res
+      .status(500)
+      .json({ message: "Something went wrong.", error: error.message });
+  }
+};

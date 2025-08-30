@@ -4,4 +4,6 @@ const upload = require("../middlewares/upload");
 module.exports = (app) => {
   app.post("/employee/add", upload.single("image"), employeeController.addEmployee);
   app.post("/employee/list", employeeController.listEmployees);
+  app.post("/employee/update", upload.single("image"), employeeController.updateEmployee);
+  app.post("/employee/delete", employeeController.deleteEmployee);
 };
