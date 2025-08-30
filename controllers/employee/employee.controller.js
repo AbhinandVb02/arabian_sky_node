@@ -1,5 +1,6 @@
 const { Upload } = require("@aws-sdk/lib-storage");
 const Employee = require("../../models/employee.model");
+const s3 = require("../../config/aws");
 
 // Add a new employee
 exports.addEmployee = async function (req, res) {
