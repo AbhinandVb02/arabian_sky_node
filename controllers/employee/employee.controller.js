@@ -5,7 +5,7 @@ const Employee = require("../../models/employee.model");
 exports.addEmployee = async function (req, res) {
   try {
     const { name, image, designation, is_employee, number } = req.body;
-    if (!name || !designation || typeof is_employee !== "boolean") {
+    if (!name || !designation) {
       return res
         .status(400)
         .json({ message: "Name, designation, and is_employee are required." });

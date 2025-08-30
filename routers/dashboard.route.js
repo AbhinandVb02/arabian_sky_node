@@ -2,4 +2,5 @@ const dashboardController = require("../controllers/dashboard/dashboard.controll
 
 module.exports = (app) => {
   app.post("/dashboard/get", dashboardController.getDashBoardData);
+  app.post("/click/count", dashboardController.addServiceClick);
 };
