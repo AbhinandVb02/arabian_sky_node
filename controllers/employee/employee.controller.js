@@ -2,40 +2,41 @@ const { Upload } = require("@aws-sdk/lib-storage");
 const Employee = require("../../models/employee.model");
 const s3 = require("../../config/aws");
 
-// Add a new employee
 exports.addEmployee = async function (req, res) {
   try {
-    const { name, image, designation, is_employee, number } = req.body;
+    const { name, designation, is_employee, number } = req.body;
     if (!name || !designation) {
       return res
         .status(400)
         .json({ message: "Name, designation, and is_employee are required." });
     }
-    if (is_employee && !number) {
+    if (is_employee == true && !number) {
       return res
         .status(400)
         .json({ message: "Mobile number is required for employees." });
     }
+    let imageKey;
+    if (req.file) {
+      const file = req.file;
 
-    const file = req.file;
+      const uploadParams = {
+        Bucket: process.env.AWS_BUCKET_NAME,
+        Key: `employee/${Date.now()}-${file.originalname}`,
+        Body: file.buffer,
+        ContentType: file.mimetype,
+      };
+      const uploader = new Upload({
+        client: s3,
+        params: uploadParams,
+      });
 
-    const uploadParams = {
-      Bucket: process.env.AWS_BUCKET_NAME,
-      Key: `employee/${Date.now()}-${file.originalname}`,
-      Body: file.buffer,
-      ContentType: file.mimetype,
-    };
-
-    const uploader = new Upload({
-      client: s3,
-      params: uploadParams,
-    });
-
-    const result = await uploader.done();
+      const result = await uploader.done();
+      imageKey = result.Key;
+    }
 
     const employee = new Employee({
       name,
-      image: result.Key,
+      image: imageKey,
       designation,
       is_employee,
       number: is_employee ? number : undefined,
@@ -50,7 +51,6 @@ exports.addEmployee = async function (req, res) {
   }
 };
 
-// List all employees with is_employee filter
 exports.listEmployees = async function (req, res) {
   try {
     const filter = { is_employee: req.body.is_employee };
@@ -65,7 +65,6 @@ exports.listEmployees = async function (req, res) {
   }
 };
 
-// Update an employee
 exports.updateEmployee = async function (req, res) {
   try {
     const { id, name, designation, is_employee, number } = req.body;
@@ -74,8 +73,6 @@ exports.updateEmployee = async function (req, res) {
     Object.keys(updateData).forEach(
       (key) => updateData[key] === undefined && delete updateData[key]
     );
-
-    // Handle image update if file is provided
     if (req.file) {
       const file = req.file;
       const uploadParams = {
@@ -111,10 +108,9 @@ exports.updateEmployee = async function (req, res) {
   }
 };
 
-// Delete an employee
 exports.deleteEmployee = async function (req, res) {
   try {
-    const { id } = req.params;
+    const { id } = req.body;
     const employee = await Employee.findByIdAndDelete(id);
     if (!employee) {
       return res.status(404).json({ message: "Employee not found." });
