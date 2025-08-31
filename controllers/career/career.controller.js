@@ -17,21 +17,21 @@ exports.saveCareerData = async function (req, res) {
       salary,
     } = req.body;
 
-    if (
-      !post ||
-      !place ||
-      !type ||
-      !responsibility ||
-      !requirment ||
-      !qualification ||
-      !experience ||
-      !salary
-    ) {
-      return res.status(400).json({
-        message:
-          "All fields (post, place, type, responsibility, requirment, qualification, experience, salary) are required.",
-      });
-    }
+    // if (
+    //   !post ||
+    //   !place ||
+    //   !type ||
+    //   !responsibility ||
+    //   !requirment ||
+    //   !qualification ||
+    //   !experience ||
+    //   !salary
+    // ) {
+    //   return res.status(400).json({
+    //     message:
+    //       "All fields (post, place, type, responsibility, requirment, qualification, experience, salary) are required.",
+    //   });
+    // }
 
     const career = new Career({
       post,
@@ -107,22 +107,22 @@ exports.updateCareerData = async function (req, res) {
       salary,
     } = req.body;
 
-    if (
-      !id ||
-      !post ||
-      !place ||
-      !type ||
-      !responsibility ||
-      !requirment ||
-      !qualification ||
-      !experience ||
-      !salary
-    ) {
-      return res.status(400).json({
-        message:
-          "All fields (id, post, place, type, responsibility, requirment, qualification, experience, salary) are required.",
-      });
-    }
+    // if (
+    //   !id ||
+    //   !post ||
+    //   !place ||
+    //   !type ||
+    //   !responsibility ||
+    //   !requirment ||
+    //   !qualification ||
+    //   !experience ||
+    //   !salary
+    // ) {
+    //   return res.status(400).json({
+    //     message:
+    //       "All fields (id, post, place, type, responsibility, requirment, qualification, experience, salary) are required.",
+    //   });
+    // }
 
     const career = await Career.findByIdAndUpdate(
       id,

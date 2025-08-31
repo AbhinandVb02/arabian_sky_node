@@ -44,6 +44,23 @@ exports.getDashBoardData = async function (req, res) {
     // Get total service click count
     const serviceClickCount = await ServiceClick.countDocuments();
 
+    // Get click count for each service
+    const serviceClicksByService = await ServiceClick.aggregate([
+      {
+        $group: {
+          _id: "$serviceName",
+          count: { $sum: 1 },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          serviceName: "$_id",
+          count: 1,
+        },
+      },
+    ]);
+
     // Get the latest 5 orders
     const latestOrders = await Order.find({})
       .sort({ createdAt: -1 })
@@ -55,6 +72,7 @@ exports.getDashBoardData = async function (req, res) {
         total_count: totalOrdercount,
         orders_by_status: orderStatusData,
         service_click: serviceClickCount,
+        service_clicks_by_service: serviceClicksByService,
         latest_orders: latestOrders,
       },
       message: "Dashboard data.",
