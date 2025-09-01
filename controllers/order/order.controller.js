@@ -1,16 +1,25 @@
 const Order = require("../../models/order.model");
 const OrderStatusSchema = require("../../models/order_status.model");
+const nodemailer = require("nodemailer");
+
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: process.env.ADMIN_EMAIL,
+    pass: process.env.ADMIN_EMAIL_PASS,
+  },
+});
 
 exports.saveOrderData = async function (req, res) {
   try {
-    const { title, department, location, status, userId } = req.body;
+    const { title, department, location, status, email } = req.body;
 
-    if (!title || !department || !location || !status) {
-      return res.status(400).json({
-        message:
-          "All fields (title, department, location, status, description) are required.",
-      });
-    }
+    // if (!title || !department || !location || !status) {
+    //   return res.status(400).json({
+    //     message:
+    //       "All fields (title, department, location, status) are required.",
+    //   });
+    // }
 
     const lastOrder = await Order.findOne({}, {}, { sort: { createdAt: -1 } });
     let nextId = 1;
@@ -28,6 +37,7 @@ exports.saveOrderData = async function (req, res) {
       department,
       location,
       status,
+      email,
     });
 
     const newOrder = await order.save();
@@ -38,6 +48,34 @@ exports.saveOrderData = async function (req, res) {
       location,
       added_on: new Date(),
     });
+
+    if (email) {
+      const mailOptions = {
+        from: process.env.ADMIN_EMAIL,
+        to: email,
+        subject: "Order Confirmed",
+        text: `Your order has been confirmed!\n\nOrder ID: ${order_id}\n\nYou can track your order using this Order ID.\n\nThank you for your order!`,
+        html: `<p>Your order has been <b>confirmed</b>!</p>
+               <p><b>Order ID:</b> ${order_id}</p>
+               <p>You can track your order using this Order ID.</p>
+               <p>
+                 <a href="${
+                   process.env.CLIENT_URL + "/ordertracking"
+                 }" target="_blank" style="color: #1a73e8; text-decoration: underline;">
+                   Click here to track your order
+                 </a>
+               </p>
+               <p>Thank you for your order!</p>`,
+      };
+
+      transporter.sendMail(mailOptions, (err, info) => {
+        if (err) {
+          console.error("Error sending confirmation email:", err);
+        } else {
+          console.log("Order confirmation email sent:", info.response);
+        }
+      });
+    }
 
     res.status(201).json({ message: "Order added successfully.", order_id });
   } catch (error) {
@@ -88,7 +126,7 @@ exports.getOrderData = async function (req, res) {
 
 exports.updateOrderData = async function (req, res) {
   try {
-    const { id, title, department, location, status, userId } = req.body;
+    const { id, title, department, location, status, email } = req.body;
 
     // if (!title || !department || !location || !status || !userId) {
     //   return res.status(400).json({
@@ -107,6 +145,7 @@ exports.updateOrderData = async function (req, res) {
     existingOrder.department = department;
     existingOrder.location = location;
     existingOrder.status = status;
+    existingOrder.email = email;
 
     await existingOrder.save();
 
